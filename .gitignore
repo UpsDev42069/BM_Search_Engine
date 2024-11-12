@@ -3,8 +3,8 @@
 
 ### dotenv ###
 .env
-.env.prod
-.env.dev
+.env.production
+.env.development
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -16,6 +16,8 @@
 *.dll
 *.so
 *.dylib
+vendor/
+tmp/
 
 # Test binary, built with `go test -c`
 *.test
@@ -243,3 +245,14 @@ legacy_code/src/backend/venv
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/svelte,go,node,venv,dotenv,visualstudiocode,macos
+
+dist-ssr
+*.local
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

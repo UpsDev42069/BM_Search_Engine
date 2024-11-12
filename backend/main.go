@@ -65,7 +65,7 @@ func main() {
 	r.HandleFunc("/api/login", handlers.LoginHandler(database)).Methods("POST")
 	r.HandleFunc("/api/weather", handlers.WeatherHandler).Methods("GET")
 	r.HandleFunc("/api/logout", handlers.LogoutHandler).Methods("GET")
-
+	r.HandleFunc("/api/reset-password", handlers.ResetPasswordHandler(database)).Methods("PUT")
 	r.HandleFunc("/api/check-login", handlers.CheckLoginHandler).Methods("GET")
 
 	r.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)

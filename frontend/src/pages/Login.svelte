@@ -11,7 +11,12 @@
     const res = await login($username, $password);
     if (res && res.ok) {
       await session.checkSession();
-      navigate("/");
+      const data = await res.json();
+      if (data.resetPassword){
+        navigate("/reset-password");
+      } else {
+        navigate("/");
+      }
     } else {
       console.error("Login failed: ", res);
     }

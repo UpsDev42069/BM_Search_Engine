@@ -1,0 +1,32 @@
+networks:
+  UpsDevs:
+    driver: bridge
+
+services:
+  backend:
+    image: ghcr.io/upsdev42069/upsdev-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - UpsDevs
+    volumes:
+      - db-data:/app/data
+    restart: unless-stopped
+    command: ["/app/main"]
+
+  frontend:
+    image: ghcr.io/upsdev42069/upsdev-frontend:latest
+    build: ./frontend
+    ports:
+      - "8069:8069"
+    networks:
+      - UpsDevs
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db-data:

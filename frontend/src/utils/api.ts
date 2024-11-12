@@ -56,7 +56,7 @@ export async function register(username: string, password: string, email: string
 
 export async function getWeather() {
   try {
-    const response = await fetch(`${API_URL}/weather`)
+    const response = await fetch(`${API_URL}/weather`);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -64,13 +64,31 @@ export async function getWeather() {
   }
 }
 
-export async function search(query:string) {
-  try{
-    const res = await fetch(`${API_URL}/search?q=${query}`)
+export async function search(query: string) {
+  try {
+    const res = await fetch(`${API_URL}/search?q=${query}`);
     const data = await res.json();
     return data;
-  }catch(error){
+  } catch (error) {
     console.log(error);
-    
   }
+}
+
+export async function resetPassword(username: string, oldPassword: string, newPassword: string) {
+  try {
+    const res = await fetch(`${API_URL}/reset-password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, oldPassword, newPassword }),
+      credentials: "include",
+    });
+    if (res.ok) {
+      return res;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+
 }

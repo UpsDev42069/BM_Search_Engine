@@ -4,12 +4,9 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL
+  password TEXT NOT NULL,
+  password_reset_required BOOLEAN DEFAULT FALSE
 );
-
--- Create a default user, The password is 'password' (MD5 hashed)
-INSERT INTO users (username, email, password) 
-    VALUES ('admin', 'keamonk1@stud.kea.dk', '5f4dcc3b5aa765d61d8327deb882cf99');
 
 -- Original pages table without the last_updated column
 CREATE TABLE IF NOT EXISTS pages (

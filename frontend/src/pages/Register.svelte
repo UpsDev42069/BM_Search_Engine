@@ -1,7 +1,7 @@
 <script lang="ts">
   import Layout from "../components/Layout.svelte";
   import { writable } from "svelte/store";
-  import { register } from "../utils/api";
+  import { login, register } from "../utils/api";
   import { navigate } from "svelte-routing";
 
   let error = writable<string | null>(null);
@@ -15,10 +15,17 @@
       error.set("Passwords do not match");
       return;
     }
-    const res = await register($username, $password, $email);
-    if (res && res.ok) {
+    const registerResponse = await register($username, $password, $email);
+    console.log(registerResponse);
+    if (registerResponse && registerResponse.ok) {
+      // TODO: login users after registration
       error.set(null);
-      navigate("/login");
+      const loginResponse = await login($username, $password);
+      if (loginResponse && loginResponse.ok) {
+        navigate("/");
+      } else {
+        error.set("Login failed");
+      }
     } else {
       error.set("Registration failed");
     }

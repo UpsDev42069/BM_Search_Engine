@@ -14,9 +14,10 @@ import (
 )
 
 type AuthResponse struct {
-	StatusCode int    `json:"statusCode"`
-	Message    string `json:"message"`
-	Username   string `json:"username,omitempty"` // Add the Username field
+	StatusCode    int    `json:"statusCode"`
+	Message       string `json:"message"`
+	Username      string `json:"username,omitempty"`      // Add the Username field
+	ResetPassword bool   `json:"resetPassword,omitempty"` // Add the ResetPassword field
 }
 
 type SearchResponse struct {
@@ -254,7 +255,8 @@ func LoginHandler(database *sql.DB) http.HandlerFunc {
 
 		// Query the database for the user
 		var dbUser LoginRequest
-		err = database.QueryRow("SELECT username, password FROM users WHERE username = ?", user.Username).Scan(&dbUser.Username, &dbUser.Password)
+		var resetPassword bool
+		err = database.QueryRow("SELECT username, password, password_reset_required FROM users WHERE username = ?", user.Username).Scan(&dbUser.Username, &dbUser.Password, &resetPassword)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
@@ -280,9 +282,10 @@ func LoginHandler(database *sql.DB) http.HandlerFunc {
 		// Return success response
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(AuthResponse{
-			StatusCode: http.StatusOK,
-			Message:    "Login successful",
-			Username:   dbUser.Username,
+			StatusCode:    http.StatusOK,
+			Message:       "Login successful",
+			Username:      dbUser.Username,
+			ResetPassword: resetPassword,
 		})
 	}
 }
@@ -364,4 +367,68 @@ func CheckLoginHandler(w http.ResponseWriter, r *http.Request) {
 		Message:    "Logged in",
 		Username:   userID,
 	})
+}
+
+type ResetPasswordRequest struct {
+	Username    string `json:"username"`
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+// @Summary Reset password
+func ResetPasswordHandler(database *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var user ResetPasswordRequest
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		var hashedPassword string
+		err = database.QueryRow("SELECT password FROM users WHERE username = ?", user.Username).Scan(&hashedPassword)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			} else {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Check if the old password is correct
+
+		if !security.CheckPasswordHash(hashedPassword, user.OldPassword) {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		// Hash the new password and update the user in the database
+		newHashedPassword, err := security.HashPassword(user.NewPassword)
+		if err != nil {
+			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			return
+		}
+
+		// Update the password in the database
+		_, err = database.Exec("UPDATE users SET password = ?, password_reset_required = ? WHERE username = ?", newHashedPassword, false, user.Username)
+		if err != nil {
+			http.Error(w, "Failed to update password", http.StatusInternalServerError)
+			return
+		}
+
+		//Return success response
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(AuthResponse{
+			StatusCode: http.StatusOK,
+			Message:    "Password reset successful",
+			Username:   user.Username,
+		})
+
+	}
 }
