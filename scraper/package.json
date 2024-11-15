@@ -1,0 +1,19 @@
+{
+  "name": "elasticsearch",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.15.2",
+    "dotenv": "^16.4.5",
+    "jsdom": "^25.0.1",
+    "node-fetch": "^3.3.2"
+  },
+  "description": ""
+}
