@@ -16,7 +16,6 @@ async function importData() {
       url: page.url,
       title: page.title,
       content: page.content,
-      last_updated: new Date(),
     }));
 
     await knexPostgres("pages").insert(formattedData).onConflict("title", "url").ignore();
