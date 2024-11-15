@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/UpsDev42069/BM_Search_Engine/backend/db"
+	//"github.com/UpsDev42069/BM_Search_Engine/backend/db"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/security"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/weather"
 	"github.com/joho/godotenv"
@@ -59,44 +59,97 @@ func RootGet(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} SearchResponse
 // @Failure 422 {object} RequestValidationError
 // @Router /api/search [get]
+// SearchHandler handles the search functionality with ranking
 func SearchHandler(database *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query().Get("q")
-		if q == "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			json.NewEncoder(w).Encode(RequestValidationError{
-				StatusCode: 422,
-				Message:    "Query parameter is required",
-			})
-			return
-		}
+    return func(w http.ResponseWriter, r *http.Request) {
+        // Retrieve the search query parameter 'q'
+        q := r.URL.Query().Get("q")
+        if q == "" {
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusUnprocessableEntity)
+            json.NewEncoder(w).Encode(RequestValidationError{
+                StatusCode: 422,
+                Message:    "Query parameter is required",
+            })
+            return
+        }
 
-		language := r.URL.Query().Get("language")
-		if language == "" {
-			language = "en"
-		}
+        // Retrieve the optional 'language' query parameter
+        language := r.URL.Query().Get("language")
+        if language == "" {
+            language = "en"
+        }
 
-		var searchResults []map[string]interface{}
-		// changed to use postgresQL
-		query := `
-			SELECT title, url, language, last_updated, content
-			FROM pages
-			WHERE to_tsvector('english', content) @@ plainto_tsquery($1)
-		`
-		args := []interface{}{q}
-		results, err := db.QueryDB(database, query, args...)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		searchResults = results
+        // Define the SQL query with ranking
+        query := `
+            SELECT 
+                title, 
+                url, 
+                language, 
+                last_updated, 
+                content,
+                ts_rank(to_tsvector('english', content), plainto_tsquery($1)) AS rank
+            FROM 
+                pages
+            WHERE 
+                to_tsvector('english', content) @@ plainto_tsquery($1)
+            ORDER BY 
+                rank DESC
+            LIMIT 50;  -- Optional: Limit the number of results
+        `
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(SearchResponse{
-			Data: searchResults,
-		})
-	}
+        // Execute the query
+        rows, err := database.Query(query, q)
+        if err != nil {
+            log.Printf("Search query failed: %v", err)
+            http.Error(w, "Internal server error", http.StatusInternalServerError)
+            return
+        }
+        defer rows.Close()
+
+        // Prepare the search results
+        var searchResults []map[string]interface{}
+        for rows.Next() {
+            var title, url, lang, content string
+            var lastUpdated sql.NullTime
+            var rank float64
+
+            err := rows.Scan(&title, &url, &lang, &lastUpdated, &content, &rank)
+            if err != nil {
+                log.Printf("Error scanning row: %v", err)
+                http.Error(w, "Internal server error", http.StatusInternalServerError)
+                return
+            }
+
+            result := map[string]interface{}{
+                "title":        title,
+                "url":          url,
+                "language":     lang,
+                "last_updated": nil,
+                "content":      content,
+                "rank":         rank,
+            }
+
+            if lastUpdated.Valid {
+                result["last_updated"] = lastUpdated.Time
+            }
+
+            searchResults = append(searchResults, result)
+        }
+
+        // Check for errors from iterating over rows
+        if err := rows.Err(); err != nil {
+            log.Printf("Rows iteration error: %v", err)
+            http.Error(w, "Internal server error", http.StatusInternalServerError)
+            return
+        }
+
+        // Respond with the search results
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(SearchResponse{
+            Data: searchResults,
+        })
+    }
 }
 
 // RootPost handles the root POST request
