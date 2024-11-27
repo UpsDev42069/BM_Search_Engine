@@ -190,18 +190,6 @@ func RegisterHandler(database *sql.DB) http.HandlerFunc {
 	}
 }
 
-// Error logic if search query is empty
-func SearchHandlerLucas(w http.ResponseWriter, r *http.Request) {
-	// function body
-	query := r.URL.Query().Get("q")
-	if query == "" {
-		http.Error(w, "Missing query parameter", http.StatusBadRequest)
-		return
-	}
-
-	w.Write([]byte("Searching for " + query))
-}
-
 /////////////////////////////////////////
 //	 	Login logic for users        //
 /////////////////////////////////////////
