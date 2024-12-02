@@ -10,8 +10,7 @@ import (
 
 var store *sessions.CookieStore
 
-func init() {
-	secret := os.Getenv("SESSION_SECRET")
+func InitializeStore(secret string) {
 	if secret == "" {
 		fmt.Println("SESSION_SECRET is not set")
 		os.Exit(1)

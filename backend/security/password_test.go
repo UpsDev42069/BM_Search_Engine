@@ -1,10 +1,27 @@
 package security_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/UpsDev42069/BM_Search_Engine/backend/security"
 )
+
+func TestMain(m *testing.M) {
+	// Set test env to true
+	os.Setenv("TEST_ENV", "true")
+
+	// Set session secret for testing	purposes
+	os.Setenv("SESSION_SECRET", "testsecret123")
+
+	code := m.Run()
+
+	// Clean up environment variables
+	os.Unsetenv("TEST_ENV")
+	os.Unsetenv("SESSION_SECRET")
+
+	os.Exit(code)
+}
 
 func TestHashPassword(t *testing.T) {
 	password := "SecurePassword123!"

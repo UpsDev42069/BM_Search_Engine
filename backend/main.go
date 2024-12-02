@@ -9,6 +9,7 @@ import (
 	"github.com/UpsDev42069/BM_Search_Engine/backend/db"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/handlers"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/metrics"
+	"github.com/UpsDev42069/BM_Search_Engine/backend/security"
 	"github.com/rs/cors"
 
 	_ "github.com/UpsDev42069/BM_Search_Engine/backend/docs"
@@ -37,6 +38,9 @@ func main() {
 	if frontendURL == "" {
 		log.Fatal("Frontend url not set in .env file")
 	}
+
+	secret := os.Getenv("SESSION_SECRET")
+	security.InitializeStore(secret)
 
 	// Init metrics
 	metrics.Init()
