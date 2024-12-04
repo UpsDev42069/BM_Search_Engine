@@ -1,0 +1,20 @@
+digraph G {
+    rankdir=LR; // Layout from Left to Right
+    node [shape=rectangle, style=filled, color=lightblue];
+
+    // Define Virtual Machine
+    VM [label="Virtual Machine", shape=ellipse, color=lightgreen];
+
+    // Define Docker Containers
+    Database [label="Database\n(PostgreSQL)"];
+    Backend [label="Backend\n(Go)"];
+    Frontend [label="Frontend\n(Svelte)"];
+    Proxy [label="Proxy"];
+
+    // Define Relationships
+    VM -> Proxy [label="runs"];
+    Proxy -> Frontend [label="routes to"];
+    Proxy -> Backend [label="routes to"];
+    Backend -> Database [label="uses"];
+    Frontend -> Backend [label="API calls"];
+}
