@@ -2,16 +2,28 @@ package weather
 
 import (
     "testing"
+    "os"
 
     "github.com/UpsDev42069/BM_Search_Engine/backend/config"
 )
 
-func TestGetWeather(t *testing.T) {
-    // Load environment variables is already handled in TestMain
+func TestMain(m *testing.M) {
+    // Set the environment to test
+    os.Setenv("GO_ENV", "test")
 
+    // Load environment variables
+    config.LoadEnv()
+
+    // Run tests
+    code := m.Run()
+    os.Exit(code)
+}
+
+func TestGetWeather(t *testing.T) {
+    // Ensure that the API Key is loaded
     apiKey := config.APIKey
     if apiKey == "" {
-        t.Fatal("API_KEY is not set in .env file")
+        t.Fatal("API_KEY is not set in the configuration")
     }
 
     t.Logf("Using API_KEY: %s", apiKey) // Verifying that the API Key is loaded correctly

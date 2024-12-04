@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 
+
+	"github.com/UpsDev42069/BM_Search_Engine/backend/config"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/db"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/security"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/weather"
-	"github.com/joho/godotenv"
+	
 )
 
 type AuthResponse struct {
@@ -288,11 +289,7 @@ func LoginHandler(database *sql.DB) http.HandlerFunc {
 // @Success 200 {object} StandardResponse
 // @Router /api/weather [get]
 func WeatherHandler(w http.ResponseWriter, r *http.Request) {
-	if err := godotenv.Load(); err != nil {
-		http.Error(w, "Error loading .env file", http.StatusInternalServerError)
-		return
-	}
-	apiKey := os.Getenv("API_KEY")
+	apiKey := config.APIKey
 	if apiKey == "" {
 		http.Error(w, "API_KEY is not set in .env file", http.StatusInternalServerError)
 		return

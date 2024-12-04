@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/joho/godotenv"
 )
@@ -13,7 +12,7 @@ var (
 	APIKey        string
 	FrontendURL   string
 	SessionSecret string
-	DBDriver      string // Added to specify the DB driver
+	DBDriver      string // e.g., "postgres", "sqlite3"
 	DBHost        string
 	DBPort        string
 	DBUser        string
@@ -23,13 +22,8 @@ var (
 
 // LoadEnv loads environment variables from the .env file located in the backend directory.
 func LoadEnv() {
-	// Determine the path to the .env file relative to this file's location.
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		log.Fatalf("Unable to determine the file path.")
-	}
-	configDir := filepath.Dir(filename)
-	envPath := filepath.Join(configDir, "../.env")
+	// Define the relative path to the .env file from this file's directory.
+	envPath := filepath.Join("../.env")
 
 	// Convert to absolute path
 	absEnvPath, err := filepath.Abs(envPath)
@@ -39,7 +33,7 @@ func LoadEnv() {
 
 	// Load the .env file
 	if err := godotenv.Load(absEnvPath); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Fatalf("Error loading .env file at %s: %v", absEnvPath, err)
 	}
 
 	// Assign environment variables to package-level variables
@@ -52,6 +46,16 @@ func LoadEnv() {
 	DBUser = os.Getenv("DB_USER")
 	DBPassword = os.Getenv("DB_PASSWORD")
 	DBName = os.Getenv("DB_NAME")
+
+	// Log loaded environment variables (Avoid logging sensitive info in production)
+	log.Printf("Loaded Environment Variables:")
+	log.Printf("APIKey: %s", APIKey)
+	log.Printf("FrontendURL: %s", FrontendURL)
+	log.Printf("DBDriver: %s", DBDriver)
+	log.Printf("DBHost: %s", DBHost)
+	log.Printf("DBPort: %s", DBPort)
+	log.Printf("DBUser: %s", DBUser)
+	log.Printf("DBName: %s", DBName)
 
 	// Check if required environment variables are set
 	missingVars := false

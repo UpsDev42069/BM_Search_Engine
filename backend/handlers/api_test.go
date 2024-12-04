@@ -22,6 +22,9 @@ func TestMain(m *testing.M) {
     // Load environment variables
     config.LoadEnv()
 
+	// Initialize security store with the session secret
+	security.InitializeStore(config.SessionSecret)
+
     // Run tests
     code := m.Run()
     os.Exit(code)
