@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 	"time"
 
+	"github.com/UpsDev42069/BM_Search_Engine/backend/config"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/db"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/handlers"
 	"github.com/UpsDev42069/BM_Search_Engine/backend/metrics"
@@ -14,7 +14,6 @@ import (
 
 	_ "github.com/UpsDev42069/BM_Search_Engine/backend/docs"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -24,23 +23,12 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// Load environment variables
+	config.LoadEnv()
 
-	apiKey := os.Getenv("API_KEY")
-	if apiKey == "" {
-		log.Fatal("API_KEY is not set in .env file")
-	}
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		log.Fatal("Frontend url not set in .env file")
-	}
+	db.InitializeDBenv()
 
-	secret := os.Getenv("SESSION_SECRET")
-	security.InitializeStore(secret)
+	security.InitializeStore(config.SessionSecret)
 
 	// Init metrics
 	metrics.Init()
@@ -54,7 +42,7 @@ func main() {
 	}
 	defer database.Close()
 
-	db.RunMigrations()
+	db.RunMigrations(database)
 
 	r := mux.NewRouter()
 
@@ -62,7 +50,7 @@ func main() {
 	r.Use(metrics.Middleware)
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{frontendURL},
+		AllowedOrigins:   []string{config.FrontendURL},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -78,15 +66,8 @@ func main() {
 	r.HandleFunc("/api/reset-password", handlers.ResetPasswordHandler(database)).Methods("PUT")
 	r.HandleFunc("/api/check-login", handlers.CheckLoginHandler).Methods("GET")
 
-	r.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
+	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	// Metrics endpoint
-	r.Handle("/api/metrics", metrics.Handler()).Methods("GET")
-
-	log.Println("Server started at :8080")
-	log.Println("http://localhost:8080")
-
-	if err := http.ListenAndServe(":8080", corsHandler); err != nil {
-		log.Fatalf("Error starting server: %v", err)
-	}
+	// Start the server
+	log.Fatal(http.ListenAndServe(":8080", corsHandler))
 }

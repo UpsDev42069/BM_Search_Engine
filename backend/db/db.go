@@ -4,66 +4,63 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
+	"github.com/UpsDev42069/BM_Search_Engine/backend/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var (
-	DBHost     = os.Getenv("DB_HOST")
-	DBPort     = os.Getenv("DB_PORT")
-	DBUser     = os.Getenv("DB_USER")
-	DBPassword = os.Getenv("DB_PASSWORD")
-	DBName     = os.Getenv("DB_NAME")
-)
-
-func init() {
-	//Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
-
-	// Check environment variables are set
-	if DBHost == "" || DBPort == "" || DBUser == "" || DBPassword == "" || DBName == "" {
-		log.Fatal("Database configuration environment variables are not set")
-	}
+func InitializeDBenv() {
+	config.LoadEnv()
 }
 
 // ConnectDB returns a new connection to the database.
 func ConnectDB(initMode bool) (*sql.DB, error) {
+	var db *sql.DB
+	var err error
+
+	if config.DBDriver == "sqlite3" {
+		// For SQLite in-memory database
+		db, err = sql.Open("sqlite3", ":memory:")
+	} else {
+		// For PostgreSQL
+		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName)
+		db, err = sql.Open("postgres", psqlInfo)
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	if !initMode {
-		if err := CheckDBExists(); err != nil {
+		if err := CheckDBExists(db); err != nil {
 			return nil, err
 		}
 	}
 
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		DBHost, DBPort, DBUser, DBPassword, DBName)
-	return sql.Open("postgres", psqlInfo)
+	return db, nil
 }
 
-// CheckDBExists checks if the database exists
-func CheckDBExists() error {
-	db, err := ConnectDB(true)
-	if err != nil {
-		return err
+// CheckDBExists checks if the database exists (only applicable for PostgreSQL).
+func CheckDBExists(db *sql.DB) error {
+	if config.DBDriver == "sqlite3" {
+		// SQLite does not support databases in the same way; skip existence check
+		return nil
 	}
-	defer db.Close()
 
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname=$1)"
-	err = db.QueryRow(query, DBName).Scan(&exists)
+	err := db.QueryRow(query, config.DBName).Scan(&exists)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		return fmt.Errorf("database %s does not exist", DBName)
+		return fmt.Errorf("database %s does not exist", config.DBName)
 	}
 
 	return nil
@@ -122,27 +119,20 @@ func GetUserID(db *sql.DB, username string) (int, error) {
 	return id, nil
 }
 
-func RunMigrations() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+// RunMigrations runs the database migrations.
+func RunMigrations(db *sql.DB) {
+	var dbURL string
+	if config.DBDriver == "sqlite3" {
+		dbURL = "sqlite3://file::memory:?cache=shared" // SQLite in-memory DB
+	} else {
+		dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			config.DBUser, config.DBPassword, config.DBHost, config.DBPort, config.DBName)
 	}
-
-	// Database connection URL
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
-
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	m, err := migrate.New(
 		"file://migrations",
 		dbURL,
 	)
-
 	if err != nil {
 		log.Fatalf("Failed to initialize migrate: %v", err)
 	}
