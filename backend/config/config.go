@@ -22,8 +22,15 @@ var (
 
 // LoadEnv loads environment variables from the .env file located in the backend directory.
 func LoadEnv() {
-	// Define the relative path to the .env file from this file's directory.
-	envPath := filepath.Join("../.env")
+	var envPath string
+
+	if os.Getenv("GO_ENV") == "test" {
+		// Use .env.test for testing
+		envPath = filepath.Join("../.env.test")
+	} else {
+		// Use .env for development/production
+		envPath = filepath.Join("../.env")
+	}
 
 	// Convert to absolute path
 	absEnvPath, err := filepath.Abs(envPath)
@@ -51,10 +58,12 @@ func LoadEnv() {
 	log.Printf("Loaded Environment Variables:")
 	log.Printf("APIKey: %s", APIKey)
 	log.Printf("FrontendURL: %s", FrontendURL)
+	log.Printf("SessionSecret: %s", SessionSecret)
 	log.Printf("DBDriver: %s", DBDriver)
 	log.Printf("DBHost: %s", DBHost)
 	log.Printf("DBPort: %s", DBPort)
 	log.Printf("DBUser: %s", DBUser)
+	log.Printf("DBPassword: %s", DBPassword)
 	log.Printf("DBName: %s", DBName)
 
 	// Check if required environment variables are set
